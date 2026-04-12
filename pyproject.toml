@@ -15,7 +15,11 @@ dependencies = [
     "numpy==1.26.4",
     "openai>=1.0.0",
     "python-dotenv==1.0.1",
+    "openenv-core>=0.2.0"
 ]
+
+[project.scripts]
+server = "server.app:main"
 
 [project.optional-dependencies]
 dev = [
