@@ -13,7 +13,7 @@ Industry standards applied:
 """
 
 import logging
-from typing import Dict
+from typing import Dict, Optional
 
 import numpy as np
 
