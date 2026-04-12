@@ -1,0 +1,176 @@
+{% extends "base.html" %}
+{% block title %}API Docs — Hospital RL{% endblock %}
+
+{% block content %}
+<div class="docs-layout">
+  <nav class="docs-toc">
+    <a href="#overview">Overview</a>
+    <a href="#reset">POST /reset</a>
+    <a href="#step">POST /step</a>
+    <a href="#heuristic">POST /heuristic-step</a>
+    <a href="#demo">POST /demo</a>
+    <a href="#status">GET /status</a>
+    <a href="#info">GET /info</a>
+    <a href="#session">DELETE /session</a>
+    <a href="#actions">Action Space</a>
+    <a href="#obs">Observation</a>
+  </nav>
+
+  <div class="docs-content">
+    <h1>API Reference</h1>
+    <p>All endpoints are JSON in / JSON out. Base URL: <code style="font-family:var(--font-mono);background:var(--surface2);padding:.1rem .4rem;border-radius:4px">http://localhost:7860</code></p>
+
+    <h2 id="overview">Overview</h2>
+    <p>The API is <strong>session-based</strong>. Call <code>/api/reset</code> to get a <code>session_id</code>, then pass it in every subsequent request. Each session has its own isolated HospitalEnv instance — no shared state.</p>
+
+    <h2 id="reset">Start Episode</h2>
+    <div class="endpoint-block">
+      <div class="ep-header">
+        <span class="method POST">POST</span>
+        <span class="ep-path">/api/reset</span>
+      </div>
+      <div class="ep-desc">Start a new episode. Returns a <code>session_id</code> and the initial observation.</div>
+      <div class="ep-body">
+        <div class="code-block" style="margin-top:.5rem">
+          <div class="code-header"><span class="code-lang">Request body (optional)</span></div>
+          <pre><code>{ "seed": 42 }</code></pre>
+        </div>
+        <div class="code-block" style="margin-top:.5rem">
+          <div class="code-header"><span class="code-lang">Response 201</span></div>
+          <pre><code>{
+  "session_id": "uuid-...",
+  "observation": { "patients": [...], "resources": [...], "time_context": [...] },
+  "info": { "timestep": 0, "queue_length": 3, ... },
+  "done": false
+}</code></pre>
+        </div>
+      </div>
+    </div>
+
+    <h2 id="step">Take Action</h2>
+    <div class="endpoint-block">
+      <div class="ep-header">
+        <span class="method POST">POST</span>
+        <span class="ep-path">/api/step</span>
+      </div>
+      <div class="ep-desc">Take one action in the environment. Pass <code>session_id</code> in body or as <code>X-Session-ID</code> header.</div>
+      <div class="ep-body">
+        <div class="code-block" style="margin-top:.5rem">
+          <div class="code-header"><span class="code-lang">Request body</span></div>
+          <pre><code>{ "session_id": "uuid-...", "action": 0 }</code></pre>
+        </div>
+        <div class="code-block" style="margin-top:.5rem">
+          <div class="code-header"><span class="code-lang">Response 200</span></div>
+          <pre><code>{
+  "reward": 25.5,
+  "done": false,
+  "step_count": 1,
+  "total_reward": 25.5,
+  "action_name": "admit_to_icu",
+  "observation": { ... },
+  "info": { "patients_survived": 1, "survival_rate": 1.0, ... }
+}</code></pre>
+        </div>
+      </div>
+    </div>
+
+    <h2 id="heuristic">Heuristic Step</h2>
+    <div class="endpoint-block">
+      <div class="ep-header">
+        <span class="method POST">POST</span>
+        <span class="ep-path">/api/heuristic-step</span>
+      </div>
+      <div class="ep-desc">Let the built-in rule-based heuristic agent pick and take the next action automatically. Same response format as <code>/step</code>.</div>
+      <div class="ep-body">
+        <div class="code-block" style="margin-top:.5rem">
+          <div class="code-header"><span class="code-lang">Request body</span></div>
+          <pre><code>{ "session_id": "uuid-..." }</code></pre>
+        </div>
+      </div>
+    </div>
+
+    <h2 id="demo">Run Full Episode</h2>
+    <div class="endpoint-block">
+      <div class="ep-header">
+        <span class="method POST">POST</span>
+        <span class="ep-path">/api/demo</span>
+      </div>
+      <div class="ep-desc">Run a complete 480-step heuristic episode in one shot. No persistent session. Returns full summary with hourly snapshots and per-step rewards.</div>
+      <div class="ep-body">
+        <div class="code-block" style="margin-top:.5rem">
+          <div class="code-header"><span class="code-lang">Response 200</span></div>
+          <pre><code>{
+  "steps": 480,
+  "total_reward": 1842.5,
+  "survived": 38,
+  "died": 2,
+  "survival_rate": 95.0,
+  "triage_accuracy": 88.3,
+  "hourly_snapshots": [
+    { "hour": 1, "queue": 4, "survived": 5, "died": 0, ... },
+    ...
+  ],
+  "rewards": [-5.2, 28.1, ...]
+}</code></pre>
+        </div>
+      </div>
+    </div>
+
+    <h2 id="status">System Status</h2>
+    <div class="endpoint-block">
+      <div class="ep-header">
+        <span class="method GET">GET</span>
+        <span class="ep-path">/api/status?session_id=...</span>
+      </div>
+      <div class="ep-desc">Server health + optional session status. <code>session_id</code> query param is optional.</div>
+    </div>
+
+    <h2 id="info">Environment Info</h2>
+    <div class="endpoint-block">
+      <div class="ep-header">
+        <span class="method GET">GET</span>
+        <span class="ep-path">/api/info</span>
+      </div>
+      <div class="ep-desc">Static metadata: action space, observation space, episode length, reward range.</div>
+    </div>
+
+    <h2 id="session">Close Session</h2>
+    <div class="endpoint-block">
+      <div class="ep-header">
+        <span class="method DELETE">DELETE</span>
+        <span class="ep-path">/api/session</span>
+      </div>
+      <div class="ep-desc">Explicitly free a session and its HospitalEnv resources. Pass <code>session_id</code> in body.</div>
+    </div>
+
+    <h2 id="actions">Action Space (7 discrete)</h2>
+    <div class="table-wrapper">
+      <table>
+        <thead><tr><th>ID</th><th>Name</th><th>Description</th><th>Reward Signal</th></tr></thead>
+        <tbody>
+          <tr><td><span class="sev-badge" style="background:#64748b">0</span></td><td style="font-family:var(--font-mono);font-size:.8rem">admit_to_icu</td><td>Admit queue top patient to ICU bed (needs doctor + nurse)</td><td>+30 correct triage, -25 wrong</td></tr>
+          <tr><td><span class="sev-badge" style="background:#2563eb">1</span></td><td style="font-family:var(--font-mono);font-size:.8rem">admit_to_general</td><td>Admit to general ward (needs nurse)</td><td>+30 correct, -25 wrong triage</td></tr>
+          <tr><td><span class="sev-badge" style="background:#e67e22">2</span></td><td style="font-family:var(--font-mono);font-size:.8rem">dispatch_ambulance</td><td>Send ambulance; 60% chance brings critical patient</td><td>Resource cost penalty</td></tr>
+          <tr><td><span class="sev-badge" style="background:#9b59b6">3</span></td><td style="font-family:var(--font-mono);font-size:.8rem">escalate_to_icu</td><td>Move deteriorating general patient → ICU</td><td>+30 triage correct</td></tr>
+          <tr><td><span class="sev-badge" style="background:#27ae60">4</span></td><td style="font-family:var(--font-mono);font-size:.8rem">discharge_patient</td><td>Discharge recovered low-severity patient, frees bed</td><td>+100 survival on completion</td></tr>
+          <tr><td><span class="sev-badge" style="background:#f59e0b">5</span></td><td style="font-family:var(--font-mono);font-size:.8rem">call_extra_staff</td><td>+2 doctors +3 nurses for 60 timesteps</td><td>Indirect: enables more admits</td></tr>
+          <tr><td><span class="sev-badge" style="background:#94a3b8">6</span></td><td style="font-family:var(--font-mono);font-size:.8rem">hold_and_monitor</td><td>Wait — monitor stable queue</td><td>Wait-time penalties accumulate</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h2 id="obs">Observation Space</h2>
+    <p>The observation is a dict with three keys:</p>
+    <div class="table-wrapper">
+      <table>
+        <thead><tr><th>Key</th><th>Shape</th><th>Range</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td style="font-family:var(--font-mono)">patients</td><td>float32 [80]</td><td>[0, 1]</td><td>20 patients × 4 features: severity/5, wait/60, treatment/120, age_risk</td></tr>
+          <tr><td style="font-family:var(--font-mono)">resources</td><td>float32 [5]</td><td>[0, 1]</td><td>Normalized: ICU free, gen free, doctors, nurses, ambulances</td></tr>
+          <tr><td style="font-family:var(--font-mono)">time_context</td><td>float32 [2]</td><td>[0, 1]</td><td>timestep/480, arrival rate/0.5</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

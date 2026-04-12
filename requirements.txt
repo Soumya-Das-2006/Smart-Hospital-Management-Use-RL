@@ -1,0 +1,16 @@
+# ── Web framework ─────────────────────────────────────────────────────────────
+flask==3.0.3
+gunicorn==22.0.0
+
+# ── RL environment core ────────────────────────────────────────────────────────
+gymnasium==0.29.1
+numpy==1.26.4
+
+# ── LLM inference (HF Router — OpenAI-compatible) ─────────────────────────────
+openai>=1.0.0
+
+# ── Configuration / environment variables ─────────────────────────────────────
+python-dotenv==1.0.1
+
+# ── Testing (dev only — not needed in Docker runtime) ─────────────────────────
+# Install with: pip install -r requirements.txt pytest pytest-flask

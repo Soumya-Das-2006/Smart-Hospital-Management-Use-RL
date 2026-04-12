@@ -1,0 +1,209 @@
+{% extends "base.html" %}
+{% block title %}Dashboard — Hospital RL{% endblock %}
+
+{% block content %}
+<div class="dashboard">
+
+  <!-- ── Sidebar ─────────────────────────────────────────────────────── -->
+  <aside class="sidebar">
+
+    <!-- Session control -->
+    <div>
+      <div class="sidebar-title">Session</div>
+      <div class="session-panel">
+        <div class="session-id-label">
+          ID: <span class="session-id-value" id="sessionIdVal">None</span><br>
+          Steps: <span id="stepCountVal">0</span>
+        </div>
+        <div style="margin-bottom:.6rem">
+          <label style="font-size:.75rem;font-weight:700;color:var(--text3);display:block;margin-bottom:.3rem">Seed (optional)</label>
+          <input id="seedInput" type="number" min="0" max="2147483647"
+            placeholder="random"
+            style="width:100%;padding:.4rem .6rem;border:1.5px solid var(--border);border-radius:6px;
+                   font-family:var(--font-mono);font-size:.8rem;background:var(--surface);color:var(--text)">
+        </div>
+        <div class="ctrl-buttons">
+          <button id="btnReset" class="btn btn-primary btn-sm">⟳ New Episode</button>
+          <button id="btnHeuristic" class="btn btn-neutral btn-sm" disabled>🤖 Heuristic Step</button>
+          <button id="btnAutoRun"   class="btn btn-neutral btn-sm" disabled>⚡ Auto-Run Episode</button>
+          <button id="btnClose"     class="btn btn-danger  btn-sm" disabled>✕ Close Session</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Shift progress -->
+    <div>
+      <div class="sidebar-title">Shift Progress</div>
+      <div class="card" style="padding:1rem">
+        <div style="display:flex;justify-content:space-between;margin-bottom:.4rem">
+          <span style="font-size:.8rem;color:var(--text2);font-weight:700" id="mTimestep">0/480</span>
+          <span style="font-size:.8rem;color:var(--text3)">8-hr shift</span>
+        </div>
+        <div class="bar-track">
+          <div class="bar-fill blue" id="shiftBar" style="width:0%"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Actions -->
+    <div>
+      <div class="sidebar-title">Actions</div>
+      <div class="action-section">
+        {% for a in actions %}
+        <button class="action-btn" data-action="{{ a.id }}" disabled>
+          <span class="a-id" style="background:{{ ['#64748b','#2563eb','#e67e22','#9b59b6','#27ae60','#f59e0b','#94a3b8'][a.id] }}">{{ a.id }}</span>
+          <span class="action-btn-inner">
+            <span class="a-name">{{ a.name }}</span>
+            <span class="a-desc">{{ a.description }}</span>
+          </span>
+        </button>
+        {% endfor %}
+      </div>
+    </div>
+
+    <!-- Admin link -->
+    <div style="margin-top:auto">
+      <a href="/admin" class="btn btn-outline btn-sm" style="width:100%;justify-content:center">
+        ⬇ Admin &amp; Downloads
+      </a>
+    </div>
+  </aside>
+
+  <!-- ── Main ────────────────────────────────────────────────────────── -->
+  <div class="main-area">
+
+    <!-- Top metrics -->
+    <div class="top-bar">
+      <div class="metric-card">
+        <div class="metric-label">Total Reward</div>
+        <div class="metric-value blue" id="mReward">0</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-label">Survived</div>
+        <div class="metric-value green" id="mSurvived">0</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-label">Died</div>
+        <div class="metric-value" id="mDied">0</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-label">Queue</div>
+        <div class="metric-value" id="mQueue">0</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-label">Admitted</div>
+        <div class="metric-value" id="mAdmitted">0</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-label">Survival Rate</div>
+        <div class="metric-value green" id="mSurvivalRate">—</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-label">Triage Acc.</div>
+        <div class="metric-value blue" id="mTriageAcc">—</div>
+      </div>
+    </div>
+
+    <!-- Resources + Queue -->
+    <div class="grid-2">
+
+      <!-- Resource availability -->
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">🏥 Resource Availability</span>
+        </div>
+        <div class="card-body">
+          <div class="resource-list">
+
+            <div class="resource-item">
+              <div class="resource-row">
+                <span class="resource-name">ICU Beds</span>
+                <span class="resource-val" id="rICUVal">—</span>
+              </div>
+              <div class="bar-track"><div class="bar-fill red" id="rICUBar" style="width:100%"></div></div>
+            </div>
+
+            <div class="resource-item">
+              <div class="resource-row">
+                <span class="resource-name">General Beds</span>
+                <span class="resource-val" id="rGenVal">—</span>
+              </div>
+              <div class="bar-track"><div class="bar-fill blue" id="rGenBar" style="width:100%"></div></div>
+            </div>
+
+            <div class="resource-item">
+              <div class="resource-row">
+                <span class="resource-name">Doctors Available</span>
+                <span class="resource-val" id="rDocsVal">—</span>
+              </div>
+              <div class="bar-track"><div class="bar-fill green" id="rDocsBar" style="width:100%"></div></div>
+            </div>
+
+            <div class="resource-item">
+              <div class="resource-row">
+                <span class="resource-name">Nurses Available</span>
+                <span class="resource-val" id="rNursesVal">—</span>
+              </div>
+              <div class="bar-track"><div class="bar-fill purple" id="rNursesBar" style="width:100%"></div></div>
+            </div>
+
+          </div>
+        </div>
+      </div>
+
+      <!-- Patient queue snapshot -->
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">👥 Patient Queue</span>
+          <span class="card-badge">Live</span>
+        </div>
+        <div class="card-body" style="padding:0">
+          <div class="table-wrapper">
+            <table>
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>Severity</th>
+                  <th>Wait</th>
+                  <th>Treatment</th>
+                  <th>Age Risk</th>
+                </tr>
+              </thead>
+              <tbody id="queueBody">
+                <tr><td colspan="5" style="text-align:center;color:var(--text3);padding:1.5rem">Start an episode to see patients</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Event log -->
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">📋 Event Log</span>
+        <button class="btn btn-neutral btn-sm" onclick="document.getElementById('logBox').innerHTML=''">Clear</button>
+      </div>
+      <div class="card-body" style="padding:.75rem">
+        <div class="log-box" id="logBox">
+          <div class="log-line info">Waiting for episode — click ⟳ New Episode to begin</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<div class="toast-container" id="toastContainer"></div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  // Wire close session button visibility based on state
+  setInterval(() => {
+    const closeBtn = document.getElementById('btnClose');
+    if (closeBtn) closeBtn.disabled = !state?.sessionId;
+  }, 500);
+</script>
+{% endblock %}

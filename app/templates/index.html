@@ -1,0 +1,111 @@
+{% extends "base.html" %}
+{% block title %}Smart Hospital Resource Allocator{% endblock %}
+
+{% block content %}
+<div class="hero">
+  <div class="hero-bg"></div>
+  <div class="hero-content">
+    <div class="hero-badge">Meta PyTorch OpenEnv Hackathon</div>
+    <h1 class="hero-title">Smart Hospital<br><span class="accent">Resource Allocator</span></h1>
+    <p class="hero-desc">
+      An RL agent manages ICU beds, doctors, and ambulances in real-time
+      across an 8-hour emergency department shift. Multi-signal reward shaping.
+      7 discrete actions. 480-step episodes.
+    </p>
+    <div class="hero-actions">
+      <a href="/dashboard" class="btn btn-primary">Launch Dashboard</a>
+      <a href="/docs" class="btn btn-outline">API Reference</a>
+    </div>
+  </div>
+
+  <div class="hero-stats">
+    <div class="stat-card">
+      <div class="stat-number">7</div>
+      <div class="stat-label">Actions</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-number">480</div>
+      <div class="stat-label">Timesteps / Shift</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-number">10</div>
+      <div class="stat-label">ICU Beds</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-number">30</div>
+      <div class="stat-label">General Beds</div>
+    </div>
+  </div>
+</div>
+
+<section class="features">
+  <h2 class="section-title">Environment Architecture</h2>
+  <div class="features-grid">
+    <div class="feature-card">
+      <div class="feature-icon">🧠</div>
+      <h3>State Space</h3>
+      <p>20-patient queue × 4 features (severity, wait-time, treatment-needed, age-risk) + resource availability + time context</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">⚡</div>
+      <h3>Action Space</h3>
+      <p>7 discrete actions: admit ICU, admit general, dispatch ambulance, escalate, discharge, call staff, hold</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">🎯</div>
+      <h3>Reward Signal</h3>
+      <p>Multi-signal shaped: survival bonus (+100), wait-time penalty, triage accuracy bonus, resource efficiency signal</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">🔬</div>
+      <h3>OpenEnv Compliant</h3>
+      <p>Full Gymnasium interface: reset(), step(), render(). Session-based API. Rate-limited. Production-grade.</p>
+    </div>
+  </div>
+</section>
+
+<section class="actions-preview">
+  <h2 class="section-title">Action Space</h2>
+  <div class="actions-grid">
+    {% set actions = [
+      (0, "admit_to_icu", "Assign patient → ICU bed + doctor", "#e74c3c"),
+      (1, "admit_to_general", "Assign patient → General ward", "#3498db"),
+      (2, "dispatch_ambulance", "Send ambulance for critical incoming", "#e67e22"),
+      (3, "escalate_to_icu", "Upgrade general → ICU patient", "#9b59b6"),
+      (4, "discharge_patient", "Free bed — low-severity resolved", "#27ae60"),
+      (5, "call_extra_staff", "+2 doctors +3 nurses for 60 steps", "#f39c12"),
+      (6, "hold_and_monitor", "Wait — stable queue this step", "#7f8c8d"),
+    ] %}
+    {% for id, name, desc, color in actions %}
+    <div class="action-pill">
+      <span class="action-id" style="background:{{ color }}">{{ id }}</span>
+      <span class="action-name">{{ name }}</span>
+      <span class="action-desc">{{ desc }}</span>
+    </div>
+    {% endfor %}
+  </div>
+</section>
+
+<section class="quick-start">
+  <h2 class="section-title">Quick API Start</h2>
+  <div class="code-block">
+    <div class="code-header">
+      <span class="code-lang">bash</span>
+    </div>
+    <pre><code># 1. Start a new episode
+curl -X POST http://localhost:7860/api/reset \
+  -H "Content-Type: application/json" \
+  -d '{}'
+
+# 2. Take action 0 (admit to ICU)
+curl -X POST http://localhost:7860/api/step \
+  -H "Content-Type: application/json" \
+  -d '{"session_id": "YOUR_SESSION_ID", "action": 0}'
+
+# 3. Run a full heuristic episode (demo mode)
+curl -X POST http://localhost:7860/api/demo \
+  -H "Content-Type: application/json" \
+  -d '{"seed": 42}'</code></pre>
+  </div>
+</section>
+{% endblock %}

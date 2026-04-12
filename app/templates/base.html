@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}Smart Hospital Allocator{% endblock %}</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;600;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+  {% block extra_head %}{% endblock %}
+</head>
+<body>
+  <nav class="navbar">
+    <div class="nav-brand">
+      <span class="nav-icon">🏥</span>
+      <span class="nav-title">HospitalRL</span>
+    </div>
+    <div class="nav-links">
+      <a href="/" class="nav-link {% if request.path == '/' %}active{% endif %}">Home</a>
+      <a href="/dashboard" class="nav-link {% if request.path == '/dashboard' %}active{% endif %}">Dashboard</a>
+      <a href="/docs" class="nav-link {% if request.path == '/docs' %}active{% endif %}">API Docs</a>
+    </div>
+    <div class="nav-status">
+      <span class="status-dot" id="globalStatus"></span>
+      <span class="status-label" id="globalStatusLabel">idle</span>
+    </div>
+  </nav>
+
+  <main>
+    {% block content %}{% endblock %}
+  </main>
+
+  <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+  {% block extra_js %}{% endblock %}
+</body>
+</html>

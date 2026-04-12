@@ -1,0 +1,218 @@
+{% extends "base.html" %}
+{% block title %}Admin & Downloads — Hospital RL{% endblock %}
+
+{% block content %}
+<div style="background:var(--surface);border-bottom:1.5px solid var(--border)">
+  <div class="admin-header">
+    <h1>⚙️ Admin &amp; Downloads</h1>
+    <p>Export episode reports, reward curves, logs, and configuration data as JSON, CSV, or plain text.</p>
+  </div>
+</div>
+
+<div style="max-width:1200px;margin:0 auto;padding:1.5rem">
+
+  <!-- ── System Status Strip ──────────────────────────────────────────── -->
+  <div class="card" style="margin-bottom:1.5rem">
+    <div class="card-header">
+      <span class="card-title">🟢 System Status</span>
+      <button class="btn btn-neutral btn-sm" onclick="refreshStatus()">↻ Refresh</button>
+    </div>
+    <div class="card-body">
+      <div class="info-grid" id="statusGrid" style="grid-template-columns:repeat(auto-fill,minmax(180px,1fr))">
+        <div class="info-item"><div class="info-label">API Status</div><div class="info-val" id="sysStatus">—</div></div>
+        <div class="info-item"><div class="info-label">Active Sessions</div><div class="info-val" id="sysSessions">—</div></div>
+        <div class="info-item"><div class="info-label">API Version</div><div class="info-val" id="sysVersion">—</div></div>
+        <div class="info-item"><div class="info-label">Env Name</div><div class="info-val" id="sysEnvName">—</div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Seed input (shared) ──────────────────────────────────────────── -->
+  <div class="card" style="margin-bottom:1.5rem">
+    <div class="card-header">
+      <span class="card-title">🎲 Demo Seed</span>
+    </div>
+    <div class="card-body" style="display:flex;align-items:center;gap:1rem;flex-wrap:wrap">
+      <div>
+        <label style="font-size:.8rem;font-weight:700;color:var(--text3);display:block;margin-bottom:.35rem">Seed for demo runs (blank = random)</label>
+        <input id="adminSeed" type="number" min="0" max="2147483647"
+          placeholder="42"
+          style="padding:.5rem .85rem;border:1.5px solid var(--border);border-radius:8px;
+                 font-family:var(--font-mono);font-size:.9rem;width:160px;
+                 background:var(--surface);color:var(--text)">
+      </div>
+      <p style="font-size:.82rem;color:var(--text2);max-width:500px">
+        All "Run &amp; Download" buttons below use this seed.
+        Set a fixed seed for reproducible episodes — great for comparing different policies.
+      </p>
+    </div>
+  </div>
+
+  <!-- ── Download Cards Grid ──────────────────────────────────────────── -->
+  <div class="admin-grid">
+
+    <!-- 1. Full Episode Report -->
+    <div class="download-card">
+      <div class="dl-icon">📊</div>
+      <div class="dl-title">Full Episode Report</div>
+      <div class="dl-desc">
+        Runs a complete heuristic-agent episode and exports a full JSON summary:
+        total reward, survived/died counts, survival rate, triage accuracy, hourly snapshots, and reward-per-step array.
+      </div>
+      <div class="dl-meta">Format: JSON &nbsp;·&nbsp; ~20 KB</div>
+      <div class="dl-buttons">
+        <button id="btnDemoRun" class="btn btn-primary btn-sm">▶ Run &amp; Download Report</button>
+      </div>
+      <div id="demoResults" style="margin-top:1rem"></div>
+    </div>
+
+    <!-- 2. Hourly Snapshots CSV -->
+    <div class="download-card">
+      <div class="dl-icon">📈</div>
+      <div class="dl-title">Hourly Snapshots</div>
+      <div class="dl-desc">
+        One row per simulated hour (8 rows). Columns: Hour, Queue length, Patients survived,
+        Patients died, Cumulative reward, Survival rate %. Perfect for learning-curve plots in Excel or Python.
+      </div>
+      <div class="dl-meta">Format: CSV &nbsp;·&nbsp; 8 rows + header</div>
+      <div class="dl-buttons">
+        <button id="btnDlHourly" class="btn btn-success btn-sm">⬇ Download Hourly CSV</button>
+      </div>
+    </div>
+
+    <!-- 3. Step-by-Step Rewards CSV -->
+    <div class="download-card">
+      <div class="dl-icon">📉</div>
+      <div class="dl-title">Step-by-Step Rewards</div>
+      <div class="dl-desc">
+        Every reward value for all 480 timesteps in a CSV. Use this to plot reward curves,
+        calculate running averages, or feed into your own analysis pipeline.
+      </div>
+      <div class="dl-meta">Format: CSV &nbsp;·&nbsp; up to 480 rows</div>
+      <div class="dl-buttons">
+        <button id="btnDlRewards" class="btn btn-success btn-sm">⬇ Download Rewards CSV</button>
+      </div>
+    </div>
+
+    <!-- 4. System Status JSON -->
+    <div class="download-card">
+      <div class="dl-icon">🖥️</div>
+      <div class="dl-title">System Status Snapshot</div>
+      <div class="dl-desc">
+        Current server health snapshot: active sessions count, API version, server timestamp.
+        Useful for monitoring dashboards or uptime logs.
+      </div>
+      <div class="dl-meta">Format: JSON &nbsp;·&nbsp; Live data</div>
+      <div class="dl-buttons">
+        <button id="btnDlStatus" class="btn btn-neutral btn-sm">⬇ Download Status JSON</button>
+      </div>
+    </div>
+
+    <!-- 5. Environment Configuration -->
+    <div class="download-card">
+      <div class="dl-icon">⚙️</div>
+      <div class="dl-title">Environment Config</div>
+      <div class="dl-desc">
+        Full environment metadata: action space (7 discrete), observation space description,
+        episode length, reward range, and version info. Use for documentation or paper appendix.
+      </div>
+      <div class="dl-meta">Format: JSON &nbsp;·&nbsp; Static</div>
+      <div class="dl-buttons">
+        <button id="btnDlConfig" class="btn btn-neutral btn-sm">⬇ Download Config JSON</button>
+        <button id="btnDlEnvInfo" class="btn btn-neutral btn-sm">⬇ Env Info JSON</button>
+      </div>
+    </div>
+
+    <!-- 6. Session Event Log -->
+    <div class="download-card">
+      <div class="dl-icon">📋</div>
+      <div class="dl-title">Session Event Log</div>
+      <div class="dl-desc">
+        Exports the in-memory event log from the current dashboard session — every RESET, STEP,
+        reward, done flag, and error. Requires an active session on the Dashboard page.
+      </div>
+      <div class="dl-meta">Format: TXT &nbsp;·&nbsp; Current session only</div>
+      <div class="dl-buttons">
+        <button id="btnDlLog" class="btn btn-neutral btn-sm">⬇ Download Session Log</button>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ── API Quick-Test ────────────────────────────────────────────────── -->
+  <div class="card" style="margin-top:1.5rem">
+    <div class="card-header">
+      <span class="card-title">🔌 Live API Test</span>
+      <span class="card-badge">Interactive</span>
+    </div>
+    <div class="card-body">
+      <p style="font-size:.85rem;color:var(--text2);margin-bottom:1rem">
+        Fire real API calls from the browser and inspect raw JSON responses.
+      </p>
+      <div style="display:flex;gap:.75rem;flex-wrap:wrap;margin-bottom:1rem">
+        <button class="btn btn-primary btn-sm" onclick="testReset()">POST /api/reset</button>
+        <button class="btn btn-neutral btn-sm" onclick="testInfo()">GET /api/info</button>
+        <button class="btn btn-neutral btn-sm" onclick="testStatus()">GET /api/status</button>
+      </div>
+      <div class="code-block">
+        <div class="code-header"><span class="code-lang">json — response</span></div>
+        <pre><code id="apiTestOutput">Click a button above to fire an API call…</code></pre>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<div class="toast-container" id="toastContainer"></div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+async function refreshStatus() {
+  try {
+    const data = await API.get('/api/status');
+    document.getElementById('sysStatus').textContent    = data.status ?? '—';
+    document.getElementById('sysSessions').textContent  = data.active_sessions ?? '—';
+    document.getElementById('sysVersion').textContent   = data.version ?? '—';
+    const info = await API.get('/api/info');
+    document.getElementById('sysEnvName').textContent   = info.name ?? '—';
+  } catch (err) {
+    document.getElementById('sysStatus').textContent = 'error';
+  }
+}
+
+async function testReset() {
+  try {
+    const data = await API.post('/api/reset', {});
+    document.getElementById('apiTestOutput').textContent = JSON.stringify(data, null, 2);
+    // Clean up
+    if (data.session_id) {
+      await API.del('/api/session', { session_id: data.session_id }).catch(()=>{});
+    }
+  } catch (err) {
+    document.getElementById('apiTestOutput').textContent = `Error: ${err.message}`;
+  }
+}
+
+async function testInfo() {
+  try {
+    const data = await API.get('/api/info');
+    document.getElementById('apiTestOutput').textContent = JSON.stringify(data, null, 2);
+  } catch (err) {
+    document.getElementById('apiTestOutput').textContent = `Error: ${err.message}`;
+  }
+}
+
+async function testStatus() {
+  try {
+    const data = await API.get('/api/status');
+    document.getElementById('apiTestOutput').textContent = JSON.stringify(data, null, 2);
+  } catch (err) {
+    document.getElementById('apiTestOutput').textContent = `Error: ${err.message}`;
+  }
+}
+
+// Auto-refresh status on load
+document.addEventListener('DOMContentLoaded', refreshStatus);
+</script>
+{% endblock %}

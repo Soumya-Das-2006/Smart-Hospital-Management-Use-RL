@@ -1,0 +1,60 @@
+# openenv.yaml — Smart Hospital Resource Allocator
+# OpenEnv standard configuration file
+
+name: smart-hospital-allocator
+version: "1.0.0"
+description: >
+  An RL environment where an LLM agent manages ICU beds, general beds,
+  doctors, nurses, and ambulances across an 8-hour emergency department shift.
+  Multi-turn, multi-resource, real-world healthcare triage.
+
+# Environment metadata
+environment:
+  class: HospitalEnv
+  module: core.env
+  episode_length: 480          # 8-hour shift in timesteps
+  action_space:
+    type: Discrete
+    n: 7
+  observation_space:
+    type: Dict
+    keys:
+      patients:     "Box(0,1, shape=(80,), float32)"
+      resources:    "Box(0,1, shape=(5,),  float32)"
+      time_context: "Box(0,1, shape=(2,),  float32)"
+  reward_range: [-500, 200]
+  reward_normalized: true      # inference.py uses survival_rate (0–1) as grader score
+
+# Server configuration
+server:
+  framework: flask
+  entry_point: run:app
+  port: 7860
+  health_endpoint: /health
+
+# Inference script
+inference:
+  script: inference.py
+  max_steps: 50
+  success_threshold: 0.5       # survival_rate >= 50% = success
+
+# Docker configuration
+docker:
+  dockerfile: Dockerfile
+  expose_port: 7860
+
+# Hugging Face Spaces
+huggingface:
+  sdk: docker
+  app_port: 7860
+  enable_web_interface: true
+
+# Dependencies
+dependencies:
+  runtime:
+    - flask==3.0.3
+    - gunicorn==22.0.0
+    - gymnasium==0.29.1
+    - numpy==1.26.4
+    - python-dotenv==1.0.1
+    - openai>=1.0.0
