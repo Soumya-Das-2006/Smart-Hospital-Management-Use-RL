@@ -41,4 +41,4 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=15s --retries=3 \
 
 # Start with Gunicorn (production-grade WSGI server)
 # HF Spaces uses port 7860 by default
-CMD ["gunicorn", "run:app", "--workers", "2", "--bind", "0.0.0.0:7860", "--timeout", "120"]
+CMD ["gunicorn", "run:app", "--workers", "1", "--bind", "0.0.0.0:7860", "--timeout", "180", "--log-level", "info"]
